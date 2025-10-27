@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parallax Exploration Page</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    .layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-position: top left;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    #background {
+      background-image: url('background1.jpg');
+      z-index: 1;
+    }
+
+    #foreground {
+      background-image: url('foreground1.png');
+      background-repeat: repeat-x;
+      background-size: auto 488px;
+      height: 488px;
+      width: 1200%;
+      position: absolute;
+      bottom: -300px;
+      left: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .clickable {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      cursor: pointer;
+      z-index: 4;
+      transition: transform 0.3s ease, filter 0.3s ease;
+      outline: 2px dashed rgba(255, 255, 255, 0.3);
+    }
+
+    .clickable:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    }
+
+    #fadeOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+      z-index: 10;
+    }
+
+    #textBox {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: sans-serif;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 11;
+    }
+  </style>
+</head>
+<body>
+  <p> <a href="index.html">Home</a></p>
+  <audio id="ambientAudio" src="audio/ambient.mp3" autoplay loop muted></audio>
+
+  <div id="background" class="layer"></div>
+  <div id="foreground" class="layer"></div>
+
+  <div class="clickable" id="click1" style="top: 40%; left: 60%; background-image: url('icon_text.jpg');"></div>
+  <div class="clickable" id="click2" style="top: 55%; left: 30%; background-image: url('icon_sound.jpg');"></div>
+  <div class="clickable" id="click3" style="top: 65%; left: 70%; background-image: url('icon_portal.jpg');"></div>
+  <div class="clickable" id="click4" style="top: 50%; left: 45%; background-image: url('icon_anim.jpg');"></div>
+
+  <div class="clickable" id="clickCorner" style="background-image: url('icon_corner.jpg');"></div>
+  <div class="clickable" id="clickBGCenter" style="background-image: url('icon_bgcenter.jpg');"></div>
+  <div class="clickable" id="clickFGCenter" style="background-image: url('icon_fgcenter.jpg');"></div>
+
+  <div id="fadeOverlay"></div>
+  <div id="textBox"></div>
+
+  <script>
+    const bg = document.getElementById('background');
+    const fg = document.getElementById('foreground');
+    const fadeOverlay = document.getElementById('fadeOverlay');
+    const textBox = document.getElementById('textBox');
+    const corner = document.getElementById('clickCorner');
+    const bgCenter = document.getElementById('clickBGCenter');
+    const fgCenter = document.getElementById('clickFGCenter');
+    const ambient = document.getElementById('ambientAudio');
+
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+
+    const bgWidth = 7932;
+    const bgHeight = 2651;
+
+    function resizeLayers() {
+      bg.style.width = `${bgWidth}px`;
+      bg.style.height = `${bgHeight}px`;
+    }
+
+    resizeLayers();
+
+    document.addEventListener('mousemove', (e) => {
+      const xRatio = e.clientX / window.innerWidth;
+      const yRatio = e.clientY / window.innerHeight;
+      targetX = xRatio;
+      targetY = yRatio;
+    });
+
+    function isInViewport(el) {
+      const rect = el.getBoundingClientRect();
+      return (
+        rect.top < window.innerHeight &&
+        rect.bottom > 0 &&
+        rect.left < window.innerWidth &&
+        rect.right > 0
+      );
+    }
+
+    function animate() {
+      currentX += (targetX - currentX) * 0.05;
+      currentY += (targetY - currentY) * 0.05;
+
+      const maxOffsetX = bgWidth - window.innerWidth;
+      const maxOffsetY = bgHeight - window.innerHeight;
+
+      const bgX = -currentX * maxOffsetX;
+      const bgY = -currentY * maxOffsetY;
+      const fgX = -currentX * (maxOffsetX * 1.8);
+      const fgY = 700 + currentY * -400;
+
+      fg.style.transform = `translate(${fgX}px, ${fgY}px)`;
+      bg.style.transform = `translate(${bgX}px, ${bgY}px)`;
+
+      const cornerX = bgWidth - 200;
+      const cornerY = 200;
+      corner.style.transform = `translate(${bgX + cornerX}px, ${bgY + cornerY}px)`;
+
+      const bgCenterX = bgWidth / 2 - 40;
+      const bgCenterY = bgHeight / 2 - 40;
+      bgCenter.style.transform = `translate(${bgX + bgCenterX}px, ${bgY + bgCenterY}px)`;
+
+      const fgCenterX = window.innerWidth / 2 - 40;
+      const fgCenterY = window.innerHeight - 240;
+      fgCenter.style.transform = `translate(${fgX + fgCenterX}px, ${fgY + fgCenterY}px)`;
+
+      [corner, bgCenter, fgCenter].forEach(el => {
+        el.style.pointerEvents = isInViewport(el) ? 'auto' : 'none';
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    function fadeTransition(callback, nextPage = null) {
+      fadeOverlay.style.pointerEvents = 'auto';
+      fadeOverlay.style.opacity = 1;
+      setTimeout(() => {
+        if (callback) callback();
+        if (nextPage) window.location.href = nextPage;
+      }, 1000);
+    }
+
+    function showText(message) {
+      textBox.textContent = message;
+      textBox.style.opacity = 1;
+      setTimeout(() => {
+        textBox.style.opacity = 0;
+      }, 3000);
+    }
+
+    const clickSound = new Audio('click.mp3');
+
+    document.getElementById('click1').addEventListener('click', () => {
+      showText('I did have a narrative for the project, but I have not gotten to that part yet :]. When I make it, it will be on the home page');
+      clickSound.play();
+    });
+
+    document.getElementById('click2').addEventListener('click', () => {
+      showText('The goal of this webpage was to create a narrative using webpages. This is the page that I wanted to use to test all the features I planned to use.');
+      clickSound.play();
+    });
+
+    document.getElementById('click4').addEventListener('click', () => {
+      showText('If you have ever heard of the flash game White Enamel, you would understand what I was going for.');
+      clickSound.play();
+    });
+
+    document.getElementById('click3').addEventListener('click', () => {
+      clickSound.play();
+      fadeTransition(() => {
+        showText('The air feels colder here...');
+      }, 'nextpage.html');
+    });
+
+    corner.addEventListener('click', () => {
+      showText('[insert easter egg :P]');
+      clickSound.play();
+    });
+
+    bgCenter.addEventListener('click', () => {
+      showText("Narrative plan: incorporate 2 acrylic paintings, cryptography(maybe), and would be called: Woman looking out/Man in the Hightower. a bit like a point and click while exploring using a mouse's movements.");
+      clickSound.play();
+    });
+
+    fgCenter.addEventListener('click', () => {
+      showText('The fence conceals a secret right in front of you...');
+      clickSound.play();
+    });
+
+    // Fade in ambient music once user interacts
+    function fadeInAmbient() {
+      ambient.muted = false;
+      ambient.play().then(() => {
+        let volume = 0;
+        const fadeDuration = 3000; // 3 seconds
+        const interval = 50;
+        const step = interval / fadeDuration;
+
+        const fade = setInterval(() => {
+          if (volume < 1) {
+            volume += step;
+            ambient.volume = Math.min(volume, 1);
+          } else {
+            clearInterval(fade);
+          }
+        }, interval);
+      }).catch(err => {
+        console.log('Audio autoplay prevented:', err);
+      });
+
+      document.removeEventListener('click', fadeInAmbient);
+      document.removeEventListener('mousemove', fadeInAmbient);
+      document.removeEventListener('keydown', fadeInAmbient);
+    }
+
+    document.addEventListener('click', fadeInAmbient);
+    document.addEventListener('mousemove', fadeInAmbient);
+    document.addEventListener('keydown', fadeInAmbient);
+  </script>
+</body>
+</html>
